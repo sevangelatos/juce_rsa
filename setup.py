@@ -14,7 +14,11 @@ INT_SOURCES = [
 if sys.platform == "win32":
 	cflags = ["/O2"]
 else:
-	cflags = ["-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED", "-O3", "-msse4.2"]
+	cflags = [
+		"-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED",
+		"-DJUCE_STANDALONE_APPLICATION",
+	 	"-O3",
+		 "-msse4.2"]
 
 extensions = [setuptools.Extension(
 	"juce_rsa",
