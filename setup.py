@@ -25,6 +25,7 @@ extensions = [setuptools.Extension(
 	sources=EXT_SOURCES + INT_SOURCES,
 	extra_compile_args=cflags,
 	include_dirs=["JUCE/modules"],
+	libraries=["curl"],
 	language="c++"
 )]
 
