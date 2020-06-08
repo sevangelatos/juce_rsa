@@ -8,7 +8,7 @@
 typedef struct
 {
     PyObject_HEAD
-        juce::RSAKey *rsa = nullptr;
+    juce::RSAKey *rsa = nullptr;
 } PyRSAKey;
 
 static void
@@ -22,8 +22,7 @@ PyRSAKey_dealloc(PyRSAKey *self)
 static PyObject *
 PyRSAKey_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-    PyRSAKey *self;
-    self = (PyRSAKey *)type->tp_alloc(type, 0);
+    PyRSAKey *self = (PyRSAKey *)type->tp_alloc(type, 0);
     if (self != NULL)
     {
         self->rsa = new juce::RSAKey();
@@ -34,7 +33,7 @@ PyRSAKey_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 static int
 PyRSAKey_init(PyRSAKey *self, PyObject *args, PyObject *kwds)
 {
-    static char *kwlist[] = { (char*) "s", NULL};
+    static char *kwlist[] = {(char *)"s", NULL};
     const char *string_repr = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "|s", kwlist, &string_repr))
@@ -112,8 +111,16 @@ PyRSAKey_apply(PyRSAKey *self, PyObject *const *params, Py_ssize_t count)
     return result;
 }
 
+PyObject *PyRSAKey_repr(PyRSAKey *self)
+{
+    auto str = self->rsa->toString();
+    return PyUnicode_FromFormat("%s(%s)",
+                                _PyType_Name(Py_TYPE(self)),
+                                str.toRawUTF8());
+}
+
 static PyMethodDef PyRSAKey_methods[] = {
-    {"apply", (PyCFunction) PyRSAKey_apply, METH_FASTCALL,
+    {"apply", (PyCFunction)PyRSAKey_apply, METH_FASTCALL,
      "Apply RSA to a value"},
     {NULL} /* Sentinel */
 };
@@ -124,8 +131,8 @@ static PyTypeObject PyRSAKeyType = {
     .tp_basicsize = sizeof(PyRSAKey),
     .tp_itemsize = 0,
     .tp_dealloc = (destructor)PyRSAKey_dealloc,
-    .tp_repr = (reprfunc)nullptr,
-    .tp_str = (reprfunc)nullptr,
+    .tp_repr = (reprfunc)PyRSAKey_repr,
+    .tp_str = (reprfunc)PyRSAKey_repr,
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "RSAKey object can be used to encypt/decrypt using RSA",
     .tp_methods = PyRSAKey_methods,
@@ -133,14 +140,32 @@ static PyTypeObject PyRSAKeyType = {
     .tp_new = PyRSAKey_new,
 };
 
+static bool is_positive_power_of_2(int a)
+{
+    return (a > 0) && !((a - 1) & a);
+}
+
 static PyObject *juce_rsa_create_key_pair(PyObject *self, PyObject *args)
 {
-    const char *val1 = nullptr;
-    const char *val2 = nullptr;
-    if (!PyArg_ParseTuple(args, "ss", &val1, &val2))
+    int numBits = 0;
+    if (!PyArg_ParseTuple(args, "i", &numBits))
+    {
         return NULL;
+    }
 
-    return PyLong_FromLong(0);
+    if (!is_positive_power_of_2(numBits) || numBits > 16384)
+    {
+        PyErr_SetString(PyExc_ValueError, "key size must be a power of 2 in the [2^4] 2^14");
+        return NULL;
+    }
+
+    auto pub_obj = (PyRSAKey *)PyObject_CallObject((PyObject *)&PyRSAKeyType, NULL);
+    auto priv_obj = (PyRSAKey *)PyObject_CallObject((PyObject *)&PyRSAKeyType, NULL);
+    juce::RSAKey &priv = *(priv_obj->rsa);
+    juce::RSAKey &pub = *(pub_obj->rsa);
+    juce::RSAKey::createKeyPair(pub, priv, numBits);
+
+    return PyTuple_Pack(2, pub_obj, priv_obj);
 }
 
 static PyMethodDef juceRsaMethods[] = {
