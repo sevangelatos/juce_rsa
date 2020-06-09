@@ -2,6 +2,8 @@
 #include <Python.h>
 #include <structmember.h>
 
+#include <cctype>
+
 #include <juce_cryptography/juce_cryptography.h>
 #include <juce_core/juce_core.h>
 
@@ -53,6 +55,80 @@ PyRSAKey_init(PyRSAKey *self, PyObject *args, PyObject *kwds)
     return 0;
 }
 
+static bool is_hex_string(const char *str)
+{
+    // Empty string is not considered a HEX
+    if (str == nullptr || str[0] == '\0')
+    {
+        return false;
+    }
+
+    for (size_t i = 0; str[i] != '\0'; i++)
+    {
+        if (!std::isxdigit(static_cast<unsigned char>(str[i])))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+static PyObject *
+PyRSAKey_apply_unicode(PyRSAKey *self, PyObject *obj)
+{
+    const char *utfChars = PyUnicode_AsUTF8(obj);
+    if (utfChars[0] && utfChars[0] == '0' &&
+        utfChars[1] && std::tolower(utfChars[1]) == 'x')
+    {
+        utfChars += 2;
+    }
+
+    if (!is_hex_string(utfChars))
+    {
+        PyErr_SetString(PyExc_ValueError, "Invalid hex string");
+        return NULL;
+    }
+
+    juce::BigInteger bigInt;
+    bigInt.parseString(utfChars, 16);
+    if (!self->rsa->applyToValue(bigInt))
+    {
+        PyErr_SetString(PyExc_AssertionError, "Using an uninitialized key");
+        return NULL;
+    }
+    auto jStr = "0x" + bigInt.toString(16);
+    return PyUnicode_DecodeUTF8(jStr.toRawUTF8(), jStr.getNumBytesAsUTF8(), "strict");
+}
+
+static PyObject *
+PyRSAKey_apply_long(PyRSAKey *self, PyObject *obj)
+{
+    const auto bits = _PyLong_NumBits(obj);
+    // Always allocate extra to extend with zero
+    size_t numBytes = (bits >> 3) + 1;
+    juce::MemoryBlock memBlock(numBytes, true);
+    unsigned char *data = static_cast<unsigned char *>(memBlock.getData());
+    const int little_endian = 1;
+    const int is_signed = 0;
+    PyLongObject *v = reinterpret_cast<PyLongObject *>(obj);
+    if (_PyLong_AsByteArray(v, data, memBlock.getSize(), little_endian, is_signed) == -1)
+    {
+        PyErr_SetString(PyExc_ValueError, "Could not convert to integer");
+        return NULL;
+    }
+    juce::BigInteger bigInt;
+    bigInt.loadFromMemoryBlock(memBlock);
+    if (!self->rsa->applyToValue(bigInt))
+    {
+        PyErr_SetString(PyExc_AssertionError, "Using an uninitialized key");
+        return NULL;
+    }
+
+    memBlock = bigInt.toMemoryBlock();
+    data = static_cast<unsigned char *>(memBlock.getData());
+    return _PyLong_FromByteArray(data, memBlock.getSize(), little_endian, is_signed);
+}
+
 static PyObject *
 PyRSAKey_apply(PyRSAKey *self, PyObject *const *params, Py_ssize_t count)
 {
@@ -62,45 +138,15 @@ PyRSAKey_apply(PyRSAKey *self, PyObject *const *params, Py_ssize_t count)
         return NULL;
     }
     auto obj = params[0];
-    juce::BigInteger bigInt;
     PyObject *result = nullptr;
 
     if (PyUnicode_Check(obj))
     {
-        bigInt.parseString(PyUnicode_AsUTF8(obj), 16);
-        if (!self->rsa->applyToValue(bigInt))
-        {
-            PyErr_SetString(PyExc_AssertionError, "Using an uninitialized key");
-            return NULL;
-        }
-        auto jStr = bigInt.toString(16);
-        result = PyUnicode_DecodeUTF8(jStr.toRawUTF8(), jStr.getNumBytesAsUTF8(), "strict");
+        result = PyRSAKey_apply_unicode(self, obj);
     }
     else if (PyLong_Check(obj))
     {
-        const auto bits = _PyLong_NumBits(obj);
-        // Always allocate extra to extend with zero
-        size_t numBytes = (bits >> 3) + 1;
-        juce::MemoryBlock memBlock(numBytes, true);
-        unsigned char *data = static_cast<unsigned char *>(memBlock.getData());
-        const int little_endian = 1;
-        const int is_signed = 0;
-        PyLongObject *v = reinterpret_cast<PyLongObject *>(obj);
-        if (_PyLong_AsByteArray(v, data, memBlock.getSize(), little_endian, is_signed) == -1)
-        {
-            PyErr_SetString(PyExc_ValueError, "Could not convert to integer");
-            return NULL;
-        }
-        bigInt.loadFromMemoryBlock(memBlock);
-        if (!self->rsa->applyToValue(bigInt))
-        {
-            PyErr_SetString(PyExc_AssertionError, "Using an uninitialized key");
-            return NULL;
-        }
-
-        memBlock = bigInt.toMemoryBlock();
-        data = static_cast<unsigned char *>(memBlock.getData());
-        result = _PyLong_FromByteArray(data, memBlock.getSize(), little_endian, is_signed);
+        result = PyRSAKey_apply_long(self, obj);
     }
     else
     {
@@ -113,8 +159,8 @@ PyRSAKey_apply(PyRSAKey *self, PyObject *const *params, Py_ssize_t count)
 
 PyObject *PyRSAKey_repr(PyRSAKey *self)
 {
-    auto str = self->rsa->toString();
-    return PyUnicode_FromFormat("%s(%s)",
+    auto str = self->rsa->toString().replaceFirstOccurrenceOf(",", ", ");
+    return PyUnicode_FromFormat("%s(\"%s\")",
                                 _PyType_Name(Py_TYPE(self)),
                                 str.toRawUTF8());
 }
@@ -127,7 +173,7 @@ static PyMethodDef PyRSAKey_methods[] = {
 
 static PyTypeObject PyRSAKeyType = {
     .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "juce_rsa.RSAKey",
+                   .tp_name = "juce_rsa.RSAKey",
     .tp_basicsize = sizeof(PyRSAKey),
     .tp_itemsize = 0,
     .tp_dealloc = (destructor)PyRSAKey_dealloc,
