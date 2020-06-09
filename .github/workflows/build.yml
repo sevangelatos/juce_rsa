@@ -13,20 +13,20 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
-    - uses: actions/setup-python@v1
+    - uses: actions/setup-python@v2
       name: Install Python
       with:
-        python-version: '3.7'
+        python-version: '3.8.0'
 
-    - name: Install cibuildwheel
+    - name: Install wheel
       run: |
-        python3 -m pip install cibuildwheel==1.4.2
+        python -m pip install wheel
 
     - name: Build wheel
       run: |
-        python3 -m cibuildwheel --output-dir wheelhouse
+        python ./setup.py bdist_wheel install test
 
     - uses: actions/upload-artifact@v1
       with:
         name: wheels
-        path: ./wheelhouse
+        path: ./dist
