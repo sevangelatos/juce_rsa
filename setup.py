@@ -28,11 +28,8 @@ else:
         "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED",
         "-DJUCE_STANDALONE_APPLICATION",
         "-DJUCE_USE_CURL=0",
-        "-O3",
-        "-msse4.2"
     ]
     libs = [
-        "curl"
     ]
 
 extensions = [setuptools.Extension(
