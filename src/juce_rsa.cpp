@@ -126,8 +126,8 @@ static PyMethodDef PyRSAKey_methods[] = {
 };
 
 static PyTypeObject PyRSAKeyType = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-        .tp_name = "juce_rsa.RSAKey",
+    .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "juce_rsa.RSAKey",
     .tp_basicsize = sizeof(PyRSAKey),
     .tp_itemsize = 0,
     .tp_dealloc = (destructor)PyRSAKey_dealloc,
@@ -174,7 +174,7 @@ static PyMethodDef juceRsaMethods[] = {
 };
 
 static struct PyModuleDef juce_rsa_module = {
-    PyModuleDef_HEAD_INIT,
+    .m_base = PyModuleDef_HEAD_INIT,
     .m_name = "juce_rsa",
     .m_doc = "Python bindings for juce::RSAKey.",
     .m_size = -1, /* size of per-interpreter state of the module,
