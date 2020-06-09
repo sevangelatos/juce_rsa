@@ -23,6 +23,7 @@ if sys.platform == "win32":
         "Shell32",
         "Ole32"
     ]
+    lflags = []
 else:
     cflags = [
         "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED",
@@ -31,11 +32,13 @@ else:
     ]
     libs = [
     ]
+    lflags = ["-s"]
 
 extensions = [setuptools.Extension(
     "juce_rsa",
     sources=EXT_SOURCES + INT_SOURCES,
     extra_compile_args=cflags,
+    extra_link_args=lflags,
     include_dirs=["JUCE/modules"],
     libraries=libs,
     language="c++"
