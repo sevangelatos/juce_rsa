@@ -1,1 +1,1 @@
-Python bindings for JUCE RSA
+Python bindings for juce::RSAKey
