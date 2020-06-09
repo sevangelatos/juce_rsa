@@ -172,18 +172,44 @@ static PyMethodDef PyRSAKey_methods[] = {
 };
 
 static PyTypeObject PyRSAKeyType = {
-    .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-                   .tp_name = "juce_rsa.RSAKey",
-    .tp_basicsize = sizeof(PyRSAKey),
-    .tp_itemsize = 0,
-    .tp_dealloc = (destructor)PyRSAKey_dealloc,
-    .tp_repr = (reprfunc)PyRSAKey_repr,
-    .tp_str = (reprfunc)PyRSAKey_repr,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "RSAKey object can be used to encypt/decrypt using RSA",
-    .tp_methods = PyRSAKey_methods,
-    .tp_init = (initproc)PyRSAKey_init,
-    .tp_new = PyRSAKey_new,
+    PyVarObject_HEAD_INIT(NULL, 0)                           // ob_base
+    "juce_rsa.RSAKey",                                       // tp_name
+    sizeof(PyRSAKey),                                        // tp_basicsize
+    0,                                                       // tp_itemsize
+    (destructor)PyRSAKey_dealloc,                            // tp_dealloc
+    0,                                                       // tp_vectorcall_offset
+    NULL,                                                    // tp_getattr
+    NULL,                                                    // tp_setattr
+    NULL,                                                    // tp_as_async
+    (reprfunc)PyRSAKey_repr,                                 // tp_repr
+    NULL,                                                    // tp_as_number
+    NULL,                                                    // tp_as_sequence
+    NULL,                                                    // tp_as_mapping
+    NULL,                                                    // tp_hash
+    NULL,                                                    // tp_call
+    (reprfunc)PyRSAKey_repr,                                 // tp_str
+    NULL,                                                    // tp_getattro
+    NULL,                                                    // tp_setattro
+    NULL,                                                    // tp_as_buffer
+    Py_TPFLAGS_DEFAULT,                                      // tp_flags
+    "RSAKey object can be used to encypt/decrypt using RSA", // tp_doc
+    NULL,                                                    // tp_traverse
+    NULL,                                                    // tp_clear
+    NULL,                                                    // tp_richcompare
+    0,                                                       // tp_weaklistoffset
+    NULL,                                                    // tp_iter
+    NULL,                                                    // tp_iternext
+    PyRSAKey_methods,                                        // tp_methods
+    NULL,                                                    // tp_members
+    NULL,                                                    // tp_getset
+    NULL,                                                    // tp_base
+    NULL,                                                    // tp_dict
+    NULL,                                                    // tp_descr_get
+    NULL,                                                    // tp_descr_set
+    0,                                                       // tp_dictoffset
+    (initproc)PyRSAKey_init,                                 // tp_init
+    NULL,                                                    // tp_alloc
+    PyRSAKey_new,                                            // tp_new
 };
 
 static bool is_positive_power_of_2(int a)
@@ -220,12 +246,15 @@ static PyMethodDef juceRsaMethods[] = {
 };
 
 static struct PyModuleDef juce_rsa_module = {
-    .m_base = PyModuleDef_HEAD_INIT,
-    .m_name = "juce_rsa",
-    .m_doc = "Python bindings for juce::RSAKey.",
-    .m_size = -1, /* size of per-interpreter state of the module,
-                 or -1 if the module keeps state in global variables. */
-    .m_methods = juceRsaMethods,
+    PyModuleDef_HEAD_INIT,               // PyModuleDef_Base m_base;
+    "juce_rsa",                          // const char* m_name;
+    "Python bindings for juce::RSAKey.", // const char* m_doc;
+    -1,                                  // Py_ssize_t m_size; size of per-interpreter module state or -1 if state in global variables.
+    juceRsaMethods,                      //PyMethodDef *m_methods;
+    NULL,                                // struct PyModuleDef_Slot* m_slots;
+    NULL,                                // traverseproc m_traverse;
+    NULL,                                // inquiry m_clear;
+    NULL,                                // freefunc m_free;
 };
 
 PyMODINIT_FUNC
