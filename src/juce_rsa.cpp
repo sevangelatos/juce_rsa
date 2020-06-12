@@ -90,8 +90,12 @@ PyRSAKey_apply_unicode(PyRSAKey *self, PyObject *obj)
     }
 
     juce::BigInteger bigInt;
+    bool ok = false;
+    Py_BEGIN_ALLOW_THREADS;
     bigInt.parseString(utfChars, 16);
-    if (!self->rsa->applyToValue(bigInt))
+    ok = self->rsa->applyToValue(bigInt);
+    Py_END_ALLOW_THREADS;
+    if (!ok)
     {
         PyErr_SetString(PyExc_AssertionError, "Using an uninitialized key");
         return NULL;
@@ -116,9 +120,13 @@ PyRSAKey_apply_long(PyRSAKey *self, PyObject *obj)
         PyErr_SetString(PyExc_ValueError, "Could not convert to integer");
         return NULL;
     }
+    bool ok = false;
     juce::BigInteger bigInt;
+    Py_BEGIN_ALLOW_THREADS;
     bigInt.loadFromMemoryBlock(memBlock);
-    if (!self->rsa->applyToValue(bigInt))
+    ok = self->rsa->applyToValue(bigInt);
+    Py_END_ALLOW_THREADS;
+    if (!ok)
     {
         PyErr_SetString(PyExc_AssertionError, "Using an uninitialized key");
         return NULL;
@@ -226,7 +234,7 @@ static PyObject *juce_rsa_create_key_pair(PyObject *self, PyObject *args)
 
     if (!is_positive_power_of_2(numBits) || numBits > 16384)
     {
-        PyErr_SetString(PyExc_ValueError, "key size must be a power of 2 in the [2^4] 2^14");
+        PyErr_SetString(PyExc_ValueError, "key size must be a power of 2 in the [2^4, 2^14] range");
         return NULL;
     }
 
@@ -234,7 +242,10 @@ static PyObject *juce_rsa_create_key_pair(PyObject *self, PyObject *args)
     auto priv_obj = (PyRSAKey *)PyObject_CallObject((PyObject *)&PyRSAKeyType, NULL);
     juce::RSAKey &priv = *(priv_obj->rsa);
     juce::RSAKey &pub = *(pub_obj->rsa);
+
+    Py_BEGIN_ALLOW_THREADS;
     juce::RSAKey::createKeyPair(pub, priv, numBits);
+    Py_END_ALLOW_THREADS;
 
     return PyTuple_Pack(2, pub_obj, priv_obj);
 }
