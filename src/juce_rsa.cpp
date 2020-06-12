@@ -160,9 +160,8 @@ PyRSAKey_apply(PyRSAKey *self, PyObject *const *params, Py_ssize_t count)
 PyObject *PyRSAKey_repr(PyRSAKey *self)
 {
     auto str = self->rsa->toString().replaceFirstOccurrenceOf(",", ", ");
-    return PyUnicode_FromFormat("%s(\"%s\")",
-                                _PyType_Name(Py_TYPE(self)),
-                                str.toRawUTF8());
+
+    return PyUnicode_FromFormat("RSAKey(\"%s\")", str.toRawUTF8());
 }
 
 static PyMethodDef PyRSAKey_methods[] = {
