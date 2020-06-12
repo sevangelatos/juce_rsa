@@ -4,3 +4,4 @@ juce_rsa.egg-info/
 .vscode/
 *.pyd
 */__pycache__/
+*.so
