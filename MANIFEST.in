@@ -1,0 +1,3 @@
+graft tests
+global-exclude *.pyc
+prune JUCE
