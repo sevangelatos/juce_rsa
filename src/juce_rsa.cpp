@@ -174,7 +174,7 @@ PyObject *PyRSAKey_repr(PyRSAKey *self)
 
 static PyMethodDef PyRSAKey_methods[] = {
     {"apply", (PyCFunction)PyRSAKey_apply, METH_FASTCALL,
-     "Apply RSA to a value"},
+     "Apply RSA to a value. Value can be an integer or a hexadecimal string"},
     {NULL} /* Sentinel */
 };
 
@@ -250,8 +250,15 @@ static PyObject *juce_rsa_create_key_pair(PyObject *self, PyObject *args)
     return PyTuple_Pack(2, pub_obj, priv_obj);
 }
 
+static const char * rsa_key_pair_doc = 
+"Create a key pair\n\n"
+"\tParameters:\n"
+"\tn (int): Key size in bits. eg. 2048\n"
+"\n"
+"\tReturns: (public, private) RSAKey pair\n";
+
 static PyMethodDef juceRsaMethods[] = {
-    {"create_key_pair", juce_rsa_create_key_pair, METH_VARARGS, "Create key pair."},
+    {"create_key_pair", juce_rsa_create_key_pair, METH_VARARGS, rsa_key_pair_doc},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
