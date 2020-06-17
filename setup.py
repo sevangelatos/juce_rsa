@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+import os
 from io import open
 import setuptools
 
@@ -34,6 +35,11 @@ else:
     ]
     lflags = ["-s"]
 
+# Obtain JUCE if it is not already here
+if not os.path.isfile(EXT_SOURCES[0]):
+    os.system("git clone https://github.com/juce-framework/JUCE.git")
+    os.system("cd JUCE; git checkout 5.4.7")
+
 extensions = [setuptools.Extension(
     "juce_rsa",
     sources=EXT_SOURCES + INT_SOURCES,
@@ -50,6 +56,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     author="sevangelatos",
+    author_email="sevangelatos_at_@gmail.com",
     name="juce_rsa",
     version="0.1",
     url="https://github.com/sevangelatos/juce_rsa",
