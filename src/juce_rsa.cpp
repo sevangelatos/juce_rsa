@@ -7,7 +7,7 @@
 #include <juce_cryptography/juce_cryptography.h>
 #include <juce_core/juce_core.h>
 
-typedef struct
+typedef struct PyRSAKey_struct
 {
     PyObject_HEAD
     juce::RSAKey *rsa = nullptr;
