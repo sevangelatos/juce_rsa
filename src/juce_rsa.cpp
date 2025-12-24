@@ -104,6 +104,18 @@ PyRSAKey_apply_unicode(PyRSAKey *self, PyObject *obj)
     return PyUnicode_DecodeUTF8(jStr.toRawUTF8(), jStr.getNumBytesAsUTF8(), "strict");
 }
 
+static int pylong_asbyte_array_wrapper(PyLongObject *v, unsigned char *bytes,
+                                       size_t n, int little_endian,
+                                       int is_signed) {
+#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 13
+  const int with_exceptions = 0;
+  return _PyLong_AsByteArray(v, bytes, n, little_endian, is_signed,
+                             with_exceptions);
+#else
+  return _PyLong_AsByteArray(v, bytes, n, little_endian, is_signed);
+#endif
+}
+
 static PyObject *
 PyRSAKey_apply_long(PyRSAKey *self, PyObject *obj)
 {
@@ -115,10 +127,11 @@ PyRSAKey_apply_long(PyRSAKey *self, PyObject *obj)
     const int little_endian = 1;
     const int is_signed = 0;
     PyLongObject *v = reinterpret_cast<PyLongObject *>(obj);
-    if (_PyLong_AsByteArray(v, data, memBlock.getSize(), little_endian, is_signed) == -1)
-    {
-        PyErr_SetString(PyExc_ValueError, "Could not convert to integer");
-        return NULL;
+
+    if (pylong_asbyte_array_wrapper(v, data, memBlock.getSize(), little_endian,
+                                    is_signed) == -1) {
+      PyErr_SetString(PyExc_ValueError, "Could not convert to integer");
+      return NULL;
     }
     bool ok = false;
     juce::BigInteger bigInt;
