@@ -64,6 +64,8 @@ setuptools.setup(
     description="Python bindings for juce::RSAKey",
     long_description=long_description,
     long_description_content_type="text/markdown",
+    license="MIT",
+    license_files=["LICENSE"],
     classifiers=[
                 "Development Status :: 4 - Beta",
                 "Intended Audience :: Developers",
@@ -72,13 +74,11 @@ setuptools.setup(
                 "Operating System :: POSIX :: Linux",
                 "Operating System :: Microsoft :: Windows",
                 "Operating System :: MacOS :: MacOS X",
-                "License :: OSI Approved :: MIT License",
                 "Programming Language :: C++",
                 "Programming Language :: Python :: 3 :: Only",
                 "Topic :: Security :: Cryptography",
                 "Topic :: Security",
                 "Topic :: Utilities"
     ],
-	test_suite="tests",
     python_requires='>=3.6'
 )
