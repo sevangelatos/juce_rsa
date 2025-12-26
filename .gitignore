@@ -5,3 +5,5 @@ juce_rsa.egg-info/
 *.pyd
 */__pycache__/
 *.so
+/.cache/
+/compile_commands.json
