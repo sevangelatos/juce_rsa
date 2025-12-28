@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import os
+import platform
 from io import open
 import setuptools
 
@@ -31,6 +32,32 @@ if sys.platform == "win32":
         "Ole32"
     ]
     lflags = []
+elif sys.platform == "darwin":
+    # macOS
+    cflags = [
+        "-std=c++17",
+        "-O3",
+        "-DNDEBUG",
+        "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED",
+        "-DJUCE_STANDALONE_APPLICATION",
+        "-DJUCE_USE_CURL=0",
+        "-fPIC"
+    ]
+    libs = []
+    lflags = [
+        "-framework", "Cocoa",
+        "-framework", "IOKit",
+        "-framework", "Security"
+    ]
+
+    # Add architecture-specific flags for Apple Silicon
+    if platform.machine() == "arm64":
+        cflags.extend(["-arch", "arm64"])
+        lflags.extend(["-arch", "arm64"])
+    else:
+        # Intel Mac
+        cflags.extend(["-arch", "x86_64"])
+        lflags.extend(["-arch", "x86_64"])
 else:
     # Linux and other Unix-like systems
     cflags = [
@@ -57,7 +84,12 @@ extensions = [setuptools.Extension(
     sources=EXT_SOURCES + INT_SOURCES,
     extra_compile_args=cflags,
     extra_link_args=lflags,
-    include_dirs=["JUCE/modules"],
+    include_dirs=[
+        "JUCE/modules",
+        "JUCE/modules/juce_core",
+        "JUCE/modules/juce_cryptography"
+    ],
+
     libraries=libs,
     language="c++",
     define_macros=[('VERSION_INFO', VERSION_STRING)]  # Version info for the extension
