@@ -32,29 +32,6 @@ PyRSAKey_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     return (PyObject *)self;
 }
 
-static int
-PyRSAKey_init(PyRSAKey *self, PyObject *args, PyObject *kwds)
-{
-    static char *kwlist[] = {(char *)"s", NULL};
-    const char *string_repr = NULL;
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|s", kwlist, &string_repr))
-        return -1;
-
-    if (string_repr)
-    {
-        juce::String jstring(string_repr);
-        if (!jstring.containsChar(','))
-        {
-            PyErr_SetString(PyExc_ValueError,
-                            "String representation must be two comma-separated hex numbers");
-            return -1;
-        }
-        *(self->rsa) = juce::RSAKey(string_repr);
-    }
-    return 0;
-}
-
 static bool is_hex_string(const char *str)
 {
     // Empty string is not considered a HEX
@@ -73,12 +50,83 @@ static bool is_hex_string(const char *str)
     return true;
 }
 
+
+static int
+PyRSAKey_init(PyRSAKey *self, PyObject *args, PyObject *kwds)
+{
+    static char *kwlist[] = {(char *)"s", NULL};
+    const char *string_repr = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|s", kwlist, &string_repr))
+        return -1;
+
+    if (string_repr)
+    {
+        juce::String jstring(string_repr);
+        if (!jstring.containsChar(','))
+        {
+            PyErr_SetString(PyExc_ValueError,
+                            "String representation must be two comma-separated hex numbers");
+            return -1;
+        }
+
+        // Parse the string into two parts separated by comma
+        const char* comma_pos = strchr(string_repr, ',');
+        if (comma_pos == NULL) {
+            PyErr_SetString(PyExc_ValueError,
+                            "String representation must be two comma-separated hex numbers");
+            return -1;
+        }
+        juce::String part1(string_repr, comma_pos - string_repr);
+        juce::String part2(comma_pos + 1); // Skip the comma
+
+        // Trim whitespace
+        part1 = part1.trim();
+        part2 = part2.trim();
+
+        // Check that both parts are non-empty
+        if (part1.isEmpty() || part2.isEmpty()) {
+            PyErr_SetString(PyExc_ValueError,
+                            "Both parts of the key must be non-empty");
+            return -1;
+        }
+
+        // Validate that both parts are valid hex strings
+        if (!is_hex_string(part1.toRawUTF8()) || !is_hex_string(part2.toRawUTF8())) {
+            PyErr_SetString(PyExc_ValueError,
+                            "Both parts must be valid hex numbers");
+            return -1;
+        }
+
+        *(self->rsa) = juce::RSAKey(string_repr);
+    }
+    else
+    {
+        // If no string provided, create a default RSA key
+        // The rsa field is already initialized to nullptr in the new function
+        // and should have been created there. Let's ensure it's created if not.
+        if (self->rsa == nullptr) {
+            self->rsa = new juce::RSAKey();
+        }
+    }
+    return 0;
+}
+
+
 static PyObject *
 PyRSAKey_apply_unicode(PyRSAKey *self, PyObject *obj)
 {
     const char *utfChars = PyUnicode_AsUTF8(obj);
-    if (utfChars[0] && utfChars[0] == '0' &&
-        utfChars[1] && std::tolower(utfChars[1]) == 'x')
+    if (utfChars == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Failed to convert Unicode object to UTF-8");
+        return NULL;
+    }
+
+    // Check if the original string had "0x" prefix
+    bool had_prefix = (utfChars[0] && utfChars[0] == '0' &&
+                      utfChars[1] && std::tolower(utfChars[1]) == 'x');
+
+    if (had_prefix)
     {
         utfChars += 2;
     }
@@ -100,8 +148,8 @@ PyRSAKey_apply_unicode(PyRSAKey *self, PyObject *obj)
         PyErr_SetString(PyExc_AssertionError, "Using an uninitialized key");
         return NULL;
     }
-    auto jStr = "0x" + bigInt.toString(16);
-    return PyUnicode_DecodeUTF8(jStr.toRawUTF8(), jStr.getNumBytesAsUTF8(), "strict");
+    auto result = (had_prefix ? "0x" : "") + bigInt.toString(16);
+    return PyUnicode_DecodeUTF8(result.toRawUTF8(), result.getNumBytesAsUTF8(), "strict");
 }
 
 static int pylong_asbyte_array_wrapper(PyLongObject *v, unsigned char *bytes,
